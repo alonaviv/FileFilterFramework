@@ -1,0 +1,107 @@
+# Created for "Introduction to Object Oriented Programming"
+# in the Hebrew University.
+# Author: Alon Aviv
+# Date: June 2015
+
+
+=============================
+=  Program description  =
+=============================
+
+This program implements a flexible framework for working with files.
+The framework allows filtering and ordering lists of files, according to a 
+given command file. The program recives a directory path and a command file, 
+and outputs the names of the files in the difectory, filtered and ordered 
+according to the command file specification. The command file must follow a 
+strict protocol, as specified in the attached assignment description (ex5.pdf)
+
+=============================
+=  Description of Modules  =
+=============================
+
+filescript - Management module. Uses the parser to create sections and prints the result of those sections
+in the given directory
+
+filters - Holds a factory and all filter objects. Each filter receives a file and returns 
+a boolean according to if the file passed the filter's test. 
+
+orders - Holds a factory, an order object and comparators. According to the input, the
+module builds an order that uses a certain comparator to receive an array of files and
+return the array sorted.
+
+parsing - Holds a parser that parses a commands file and builds filters and orders according
+to the name and parameters stated in the file. Each duo of filter/order is put in a section object
+
+section - The section object holds one filter and one order. It receives a directory and returns
+an array of filtered and sorted files within that directory.
+
+
+=============================
+=  Implementation details   =
+=============================
+
+GENERAL:
+ - The parameters are all put in linked lists. This makes it easier to remove the name of 
+ the filter/order and manipulate the parameters. It's also helpful to have a data structure that doesn't
+ have a set size, so there can be different numbers of parameters.
+ 
+ FILTERS:
+ - An isFile decorator is added to all filters, making sure that they are indeed filtering a file
+ and not a directory. 
+ 
+ - All filters extend AbstractFilter, which is a parent class that has a protected method that
+ tests for the vaildity of the parameters and modifiers. This method is called in the constructor of
+ all filter implementations. The AbstractFilter implements the Java class FileFilter, which is a known 
+ interface that is used by the File class to filter a directory (this is used in the section object)
+ 
+ - The since the NOT keyword can be a parameter or a modifier, depending on its location 
+ in the line and the type of filter, the certain filter is the only one that can determine if there is
+ a NOT modifier or not, according to the amount of paramaters required.
+  Each filters constructor decides this (using the AbstractFilter method as stated
+  above, giving it the number of vaild parameter) and saves the answer in the boolean hasNotModifier.
+  The factory creating the filter then attaches the NOT decorator if the boolean is true. 
+  
+  ORDERS:
+ - The order is an object that holds a comparator. The order factory choose the relevant comparator
+ and creates the order object with that comparator
+ 
+ - The REVERSE decorator is fitted an a comparator. Then the order object uses it, oblivious that
+ it's using a decorator. 
+ 
+ - Since there are no parameters, the general order decides in its constructor if there is
+ a valid REVERSE modifier. If so it attaches the reverse decorator to his comparator. The factory
+ in this case isn't part of this process. This is because the difference between orders lies in the
+ comparator object that composes the order, so the order can take care of decorating himself.
+ In the filter's case on the other hand the factory must attach the filter to the filter object
+ itself. Not that in both cases the filter/order and not the factories validate the modifiers.
+ I decided that it is more right that the modifier be handled within the filters, and the factory be
+ only burdened with the actual creation of objects, not validation. 
+ On the other hand, the validation takes place in both places in a parent filter/order, so if we
+ wish to extend/modify modifier handling, we need only change the parent class.
+ 
+ - The sorting of the files is accomplished using the Arrays.sort method, which receives the
+ custom comparator stored within order object. This method is a merge sort algorithm
+ ensured by java to be "stable, adaptive, and requiring far fewer than n log(n) comparisons".
+ 
+EXCEPTIONS
+
+Type I exceptions are separated into filter and order exceptions, each stored in its
+relevant package.
+There is a general filter exception, and BadFormat, BadName, BadValue extend it, specifying the
+error that occurred in the filter's line. Same goes for the order, with BadFormat, BadName, BadModifer 
+that extend the general order exception.
+
+These decisions reflect the types of errors that can happen. The order doesn't have a parameter to evaluate,
+so it checks that what is given is a valid modifier (REVERSE). The filter gets parameters so it checks for 
+their validity.
+
+These exceptions are thrown by the filter/order modules and caught by the parser. Once the parser catches
+them it creates and sends a warning message to the manager(through the section) and creates a default
+ filter/order. The manager then prints the warning messages and continues running the application
+
+Type II exceptions have two types: IO exception that is
+thrown by the scanner, and BadCommandFile that I created for faulty command files.
+BadCommandFile has two sub-exceptions: bad format and bad subsection - reflecting the two errors
+that can occur in the file. These two types are thrown by the parser and caught by the manager who
+prints ERROR and stops the running of the program. 
+
